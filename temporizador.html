@@ -1,0 +1,456 @@
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { background: #0e0d09; }
+body {
+  background: #0e0d09;
+  font-family: 'DM Mono', 'Courier New', monospace;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 14px 12px 20px;
+  gap: 11px;
+}
+.title {
+  font-size: 13px;
+  font-weight: 500;
+  color: #8a7840;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.subject-input {
+  width: 100%;
+  max-width: 380px;
+  background: #18160e;
+  border: 0.5px solid #38320e;
+  border-radius: 7px;
+  padding: 7px 12px;
+  font-family: inherit;
+  font-size: 12px;
+  color: #c0aa60;
+  outline: none;
+}
+.subject-input::placeholder { color: #3a3418; }
+.subject-input:focus { border-color: #6a5a28; }
+
+#wrap {
+  position: relative;
+  width: 100%;
+  max-width: 420px;
+  aspect-ratio: 1;
+}
+#wrap canvas {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+}
+
+/* State icon overlay */
+#stateIcon {
+  position: absolute;
+  bottom: 14%;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  pointer-events: none;
+}
+#stateIcon svg {
+  width: 14px; height: 14px;
+  flex-shrink: 0;
+}
+#stateLabel {
+  font-family: 'DM Mono', 'Courier New', monospace;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.dur-row {
+  display: flex; gap: 5px;
+  flex-wrap: wrap; justify-content: center; align-items: center;
+}
+.dur-label { font-size: 10px; color: #3a3418; }
+.dur-btn {
+  background: #18160e;
+  border: 0.5px solid #2e2a10;
+  border-radius: 5px;
+  padding: 4px 9px;
+  font-family: inherit; font-size: 11px;
+  color: #6a6030; cursor: pointer;
+  transition: all 0.15s;
+}
+.dur-btn:hover { color: #a09040; border-color: #504820; }
+.dur-btn.active { background: #201c0a; border-color: #907030; color: #d4aa40; }
+
+.controls { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+.btn {
+  background: #18160e;
+  border: 0.5px solid #302c10;
+  border-radius: 7px;
+  padding: 8px 18px;
+  font-family: inherit; font-size: 12px;
+  color: #8a7830; cursor: pointer;
+  transition: all 0.15s;
+  display: flex; align-items: center; gap: 6px;
+}
+.btn:hover { background: #1e1c10; color: #b09840; }
+.btn:active { transform: scale(0.97); }
+.btn.running { background: #1c0f0a; border-color: #5a2010; color: #c04030; }
+.btn.muted { color: #3a3418; border-color: #222010; }
+
+.status {
+  font-size: 11px; color: #2e2a14;
+  text-align: center; letter-spacing: 0.05em;
+  min-height: 14px;
+}
+.status.on { color: #6a6030; }
+.status.alert { color: #b03020; }
+
+.log-section { width: 100%; max-width: 380px; }
+.log-title { font-size: 9px; color: #282410; letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 5px; }
+.log-list { display: flex; flex-direction: column; gap: 3px; max-height: 80px; overflow-y: auto; }
+.log-entry {
+  display: flex; justify-content: space-between;
+  padding: 4px 9px;
+  background: #141210; border-radius: 4px;
+  border: 0.5px solid #201e10; font-size: 10px; color: #3e3820;
+  animation: fi 0.3s ease;
+}
+.log-entry .ls { color: #8a7838; font-weight: 500; }
+.log-entry .lok { color: #4a7030; font-size: 9px; }
+.log-entry .lpa { color: #806020; font-size: 9px; }
+@keyframes fi { from { opacity:0; transform:translateY(-2px);} to { opacity:1;} }
+</style>
+
+<div class="title">Temporizador de Estudio</div>
+<input class="subject-input" id="subj" type="text" placeholder="Tema que estás estudiando…" maxlength="60">
+
+<div id="wrap">
+  <canvas id="c"></canvas>
+  <div id="stateIcon">
+    <svg id="iconSvg" viewBox="0 0 24 24" fill="none" stroke="#4a4220" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="10"/>
+      <polyline points="12 6 12 12 16 14"/>
+    </svg>
+    <span id="stateLabel" style="color:#4a4220">en espera</span>
+  </div>
+</div>
+
+<div class="dur-row">
+  <span class="dur-label">Duración:</span>
+  <button class="dur-btn active" data-m="60">60 min</button>
+  <button class="dur-btn" data-m="45">45 min</button>
+  <button class="dur-btn" data-m="30">30 min</button>
+  <button class="dur-btn" data-m="25">25 min</button>
+  <button class="dur-btn" data-m="15">15 min</button>
+</div>
+
+<div class="controls">
+  <button class="btn" id="bStart">▶ Iniciar</button>
+  <button class="btn" id="bReset">↺ Reiniciar</button>
+  <button class="btn" id="bBeep">🔔 Beep</button>
+</div>
+
+<div class="status" id="st">Escribe el tema y pulsa Iniciar</div>
+
+<div class="log-section" id="logSec" style="display:none">
+  <div class="log-title">Sesiones</div>
+  <div class="log-list" id="logList"></div>
+</div>
+
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+let PX = 1; // actual pixel size of canvas
+
+function resize() {
+  const wrap = document.getElementById('wrap');
+  const size = wrap.clientWidth;
+  PX = size * window.devicePixelRatio;
+  canvas.width = PX;
+  canvas.height = PX;
+  refresh();
+}
+
+window.addEventListener('resize', resize);
+
+// --- State ---
+let totalSec = 3600, remSec = 3600;
+let running = false, timer = null, done = false;
+let beepOn = true, lastBeepMin = -1, audioCtx = null;
+
+function getAC() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return audioCtx;
+}
+function beep(freqs, dur, vol) {
+  if (!beepOn) return;
+  try {
+    const a = getAC(); a.resume();
+    freqs.forEach((f, i) => {
+      const o = a.createOscillator(), g = a.createGain();
+      o.connect(g); g.connect(a.destination);
+      o.type = 'square'; o.frequency.value = f;
+      const t = a.currentTime + i * (dur + 0.018);
+      g.gain.setValueAtTime(0, t);
+      g.gain.linearRampToValueAtTime(vol, t + 0.005);
+      g.gain.setValueAtTime(vol, t + dur - 0.008);
+      g.gain.linearRampToValueAtTime(0, t + dur);
+      o.start(t); o.stop(t + dur + 0.01);
+    });
+  } catch(e) {}
+}
+
+// --- Draw ---
+function draw(elapsed, total) {
+  const S = PX;
+  const cx = S / 2, cy = S / 2;
+  const R = S * 0.46; // main radius
+  const dpr = window.devicePixelRatio || 1;
+  ctx.clearRect(0, 0, S, S);
+
+  // Outer dark glow ring
+  const glow = ctx.createRadialGradient(cx, cy, R*0.85, cx, cy, R*1.05);
+  glow.addColorStop(0, 'rgba(180,140,30,0.0)');
+  glow.addColorStop(1, 'rgba(180,140,30,0.0)');
+  ctx.beginPath(); ctx.arc(cx, cy, R*1.05, 0, Math.PI*2);
+  ctx.fillStyle = glow; ctx.fill();
+
+  // Bezel outer
+  ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI*2);
+  ctx.fillStyle = '#1e1b0e'; ctx.fill();
+  ctx.strokeStyle = '#c8a030'; ctx.lineWidth = S*0.008; ctx.stroke();
+
+  // Bezel inner ring line
+  ctx.beginPath(); ctx.arc(cx, cy, R*0.955, 0, Math.PI*2);
+  ctx.strokeStyle = '#2e2a10'; ctx.lineWidth = S*0.004; ctx.stroke();
+
+  // Face
+  ctx.beginPath(); ctx.arc(cx, cy, R*0.945, 0, Math.PI*2);
+  ctx.fillStyle = '#111008'; ctx.fill();
+
+  // Elapsed sector (subtle red arc)
+  if (elapsed > 0 && elapsed < total) {
+    const ea = -Math.PI/2 + (elapsed/total)*Math.PI*2;
+    ctx.beginPath(); ctx.moveTo(cx, cy);
+    ctx.arc(cx, cy, R*0.94, -Math.PI/2, ea);
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(200,55,20,0.17)'; ctx.fill();
+  }
+
+  // ---- MINUTE MARKS ----
+  for (let i = 0; i < 60; i++) {
+    const angle = (i/60)*Math.PI*2 - Math.PI/2;
+    const is5  = i % 5 === 0;
+    const is15 = i % 15 === 0;
+
+    // Outer edge of mark (just inside bezel ring)
+    const outerR = R * 0.935;
+
+    let innerR, lineW, color;
+    if (is15) {
+      innerR = outerR - R*0.115;
+      lineW  = S * 0.012;
+      color  = '#e8c050';
+    } else if (is5) {
+      innerR = outerR - R*0.08;
+      lineW  = S * 0.007;
+      color  = '#c09030';
+    } else {
+      innerR = outerR - R*0.042;
+      lineW  = S * 0.003;
+      color  = '#6a5c28';
+    }
+
+    ctx.beginPath();
+    ctx.moveTo(cx + Math.cos(angle)*innerR, cy + Math.sin(angle)*innerR);
+    ctx.lineTo(cx + Math.cos(angle)*outerR, cy + Math.sin(angle)*outerR);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = lineW;
+    ctx.lineCap = 'round';
+    ctx.stroke();
+  }
+
+  // ---- NUMBERS (every 5 min) ----
+  const fs = Math.round(R * 0.13);
+  ctx.font = `500 ${fs}px DM Mono, Courier New, monospace`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  for (let i = 1; i <= 12; i++) {
+    const min = i * 5;
+    const angle = (min/60)*Math.PI*2 - Math.PI/2;
+    const nr = R * 0.76;
+    ctx.fillStyle = '#b09040';
+    ctx.fillText(min, cx + Math.cos(angle)*nr, cy + Math.sin(angle)*nr);
+  }
+
+  // ---- NEEDLE ----
+  const frac = elapsed / total;
+  const na = frac * Math.PI*2 - Math.PI/2;
+  const nLen = R * 0.80;
+  const nTail = R * 0.15;
+  const nW = S * 0.014;
+
+  // Shadow
+  ctx.save();
+  ctx.shadowColor = 'rgba(0,0,0,0.9)';
+  ctx.shadowBlur = S*0.025;
+  ctx.shadowOffsetX = S*0.008; ctx.shadowOffsetY = S*0.008;
+  ctx.beginPath();
+  ctx.moveTo(cx - Math.cos(na)*nTail, cy - Math.sin(na)*nTail);
+  ctx.lineTo(cx + Math.cos(na)*nLen, cy + Math.sin(na)*nLen);
+  ctx.strokeStyle = '#d03818';
+  ctx.lineWidth = nW; ctx.lineCap = 'round'; ctx.stroke();
+  ctx.restore();
+
+  // Needle body
+  ctx.beginPath();
+  ctx.moveTo(cx - Math.cos(na)*nTail, cy - Math.sin(na)*nTail);
+  ctx.lineTo(cx + Math.cos(na)*nLen, cy + Math.sin(na)*nLen);
+  ctx.strokeStyle = '#d83818';
+  ctx.lineWidth = nW * 0.7; ctx.lineCap = 'round'; ctx.stroke();
+
+  // Needle tip circle
+  ctx.beginPath();
+  ctx.arc(cx + Math.cos(na)*(nLen - R*0.025), cy + Math.sin(na)*(nLen - R*0.025), R*0.025, 0, Math.PI*2);
+  ctx.fillStyle = '#f04828'; ctx.fill();
+
+  // Tail (counterweight)
+  ctx.beginPath();
+  ctx.arc(cx - Math.cos(na)*nTail, cy - Math.sin(na)*nTail, R*0.02, 0, Math.PI*2);
+  ctx.fillStyle = '#d03818'; ctx.fill();
+
+  // Center cap
+  ctx.beginPath(); ctx.arc(cx, cy, R*0.042, 0, Math.PI*2);
+  ctx.fillStyle = '#c8a030'; ctx.fill();
+  ctx.beginPath(); ctx.arc(cx, cy, R*0.022, 0, Math.PI*2);
+  ctx.fillStyle = '#d03818'; ctx.fill();
+
+  // Glass sheen
+  const gg = ctx.createRadialGradient(cx - R*0.22, cy - R*0.28, R*0.04, cx, cy, R*0.94);
+  gg.addColorStop(0, 'rgba(255,255,255,0.06)');
+  gg.addColorStop(0.45, 'rgba(255,255,255,0.01)');
+  gg.addColorStop(1, 'rgba(0,0,0,0.0)');
+  ctx.beginPath(); ctx.arc(cx, cy, R*0.94, 0, Math.PI*2);
+  ctx.fillStyle = gg; ctx.fill();
+}
+
+function refresh() {
+  draw(totalSec - remSec, totalSec);
+}
+
+// --- State icon ---
+const ICONS = {
+  idle: { path: '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>', color: '#4a4220', label: 'en espera' },
+  running: { path: '<circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8" fill="#60b040" stroke="none"/>', color: '#60b040', label: 'en curso' },
+  paused: { path: '<circle cx="12" cy="12" r="10"/><line x1="10" y1="8" x2="10" y2="16"/><line x1="14" y1="8" x2="14" y2="16"/>', color: '#b09030', label: 'pausado' },
+  done: { path: '<circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/>', color: '#c04030', label: 'completado' },
+};
+
+function setStateIcon(state) {
+  const ic = ICONS[state];
+  document.getElementById('iconSvg').innerHTML = ic.path;
+  document.getElementById('iconSvg').setAttribute('stroke', ic.color);
+  document.getElementById('stateLabel').textContent = ic.label;
+  document.getElementById('stateLabel').style.color = ic.color;
+}
+
+// --- Duration buttons ---
+document.querySelectorAll('.dur-btn').forEach(b => {
+  b.addEventListener('click', () => {
+    if (running) return;
+    document.querySelectorAll('.dur-btn').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    totalSec = parseInt(b.dataset.m) * 60;
+    remSec = totalSec; done = false; lastBeepMin = -1;
+    setStatus('Escribe el tema y pulsa Iniciar', '');
+    setStateIcon('idle');
+    refresh();
+  });
+});
+
+// --- Start/Pause ---
+document.getElementById('bStart').addEventListener('click', () => {
+  if (done) { resetFn(); return; }
+  const bs = document.getElementById('bStart');
+  if (!running) {
+    running = true;
+    bs.textContent = '⏸ Pausar'; bs.classList.add('running');
+    const subj = document.getElementById('subj').value.trim() || 'Sin tema';
+    setStatus('Estudiando: ' + subj, 'on');
+    setStateIcon('running');
+    try { getAC().resume(); } catch(e) {}
+    timer = setInterval(tick, 1000);
+  } else {
+    clearInterval(timer); running = false;
+    bs.textContent = '▶ Continuar'; bs.classList.remove('running');
+    setStatus('En pausa', '');
+    setStateIcon('paused');
+  }
+});
+
+// --- Reset ---
+document.getElementById('bReset').addEventListener('click', resetFn);
+
+// --- Beep toggle ---
+document.getElementById('bBeep').addEventListener('click', () => {
+  beepOn = !beepOn;
+  const bb = document.getElementById('bBeep');
+  bb.textContent = beepOn ? '🔔 Beep' : '🔕 Beep';
+  bb.classList.toggle('muted', !beepOn);
+  if (beepOn) beep([2093, 2637], 0.055, 0.15);
+});
+
+function tick() {
+  remSec--;
+  refresh();
+  const elMin = Math.floor((totalSec - remSec) / 60);
+  if (elMin > 0 && elMin % 5 === 0 && elMin !== lastBeepMin && remSec > 0) {
+    lastBeepMin = elMin;
+    beep([2093, 2637, 2093], 0.055, 0.18);
+  }
+  if (remSec <= 0) {
+    remSec = 0; clearInterval(timer); running = false; done = true;
+    document.getElementById('bStart').textContent = '▶ Nueva sesión';
+    document.getElementById('bStart').classList.remove('running');
+    setStatus('¡Sesión completada!', 'alert');
+    setStateIcon('done');
+    logSes(true);
+    beep([2093,2637,3136,2637,3136], 0.07, 0.2);
+    refresh();
+  }
+}
+
+function resetFn() {
+  if (running) { clearInterval(timer); running = false; }
+  const el = totalSec - remSec;
+  if (el > 5 && !done) logSes(false);
+  remSec = totalSec; done = false; lastBeepMin = -1;
+  document.getElementById('bStart').textContent = '▶ Iniciar';
+  document.getElementById('bStart').classList.remove('running');
+  setStatus('Escribe el tema y pulsa Iniciar', '');
+  setStateIcon('idle');
+  refresh();
+}
+
+function setStatus(txt, cls) {
+  const el = document.getElementById('st');
+  el.textContent = txt;
+  el.className = 'status' + (cls ? ' '+cls : '');
+}
+
+function logSes(ok) {
+  const subj = document.getElementById('subj').value.trim() || 'Sin tema';
+  const el = totalSec - remSec;
+  const t = Math.floor(el/60) + 'min ' + String(el%60).padStart(2,'0') + 's';
+  const e = document.createElement('div'); e.className = 'log-entry';
+  e.innerHTML = `<span class="ls">${subj}</span><span>${t}</span><span class="${ok?'lok':'lpa'}">${ok?'✓ completo':'⏸ parcial'}</span>`;
+  document.getElementById('logList').prepend(e);
+  document.getElementById('logSec').style.display = 'block';
+}
+
+// Init
+resize();
+setStateIcon('idle');
+</script>
