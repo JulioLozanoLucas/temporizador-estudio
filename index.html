@@ -4,16 +4,10 @@ html { background: #0e0d09; }
 body {
   background: #0e0d09;
   font-family: 'DM Mono', 'Courier New', monospace;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 14px 12px 24px;
-  gap: 12px;
+  display: flex; flex-direction: column; align-items: center;
+  padding: 14px 12px 24px; gap: 12px;
 }
-.title {
-  font-size: 13px; font-weight: 500;
-  color: #8a7840; letter-spacing: 0.14em; text-transform: uppercase;
-}
+.title { font-size: 13px; font-weight: 500; color: #8a7840; letter-spacing: 0.14em; text-transform: uppercase; }
 .subject-input {
   width: 100%; max-width: 420px;
   background: #18160e; border: 0.5px solid #38320e;
@@ -22,9 +16,7 @@ body {
 }
 .subject-input::placeholder { color: #3a3418; }
 .subject-input:focus { border-color: #6a5a28; }
-#wrap {
-  position: relative; width: 100%; max-width: 420px; aspect-ratio: 1;
-}
+#wrap { position: relative; width: 100%; max-width: 420px; aspect-ratio: 1; }
 #wrap canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
 #stateIcon {
   position: absolute; bottom: 14%; left: 50%; transform: translateX(-50%);
@@ -37,14 +29,12 @@ body {
 }
 .dur-row {
   display: flex; gap: 6px; flex-wrap: wrap;
-  justify-content: center; align-items: center;
-  width: 100%; max-width: 420px;
+  justify-content: center; align-items: center; width: 100%; max-width: 420px;
 }
 .dur-label { font-size: 12px; color: #4a4430; }
 .dur-btn {
-  background: #1a1810; border: 0.5px solid #2e2a10;
-  border-radius: 7px; padding: 10px 14px;
-  font-family: inherit; font-size: 13px; color: #7a7050;
+  background: #1a1810; border: 0.5px solid #2e2a10; border-radius: 7px;
+  padding: 10px 14px; font-family: inherit; font-size: 13px; color: #7a7050;
   cursor: pointer; transition: all 0.15s; min-width: 62px; text-align: center;
 }
 .dur-btn:hover { color: #b0a060; border-color: #5a5030; }
@@ -55,29 +45,24 @@ body {
 }
 .btn {
   flex: 1; min-width: 90px;
-  background: #1a1810; border: 0.5px solid #3a3020;
-  border-radius: 10px; padding: 14px 10px;
-  font-family: inherit; font-size: 14px; color: #a09050;
+  background: #1a1810; border: 0.5px solid #3a3020; border-radius: 10px;
+  padding: 14px 10px; font-family: inherit; font-size: 14px; color: #a09050;
   cursor: pointer; transition: all 0.15s; text-align: center;
 }
 .btn:hover { background: #202010; color: #c0b060; }
 .btn:active { transform: scale(0.96); }
 .btn.running { background: #200f0a; border-color: #5a2010; color: #c04030; }
 .btn.muted { color: #3a3418; border-color: #222010; }
-.status {
-  font-size: 12px; color: #2e2a14;
-  text-align: center; letter-spacing: 0.04em; min-height: 16px;
-}
+.status { font-size: 12px; color: #2e2a14; text-align: center; letter-spacing: 0.04em; min-height: 16px; }
 .status.on { color: #7a7040; }
 .status.alert { color: #b03020; font-weight: 500; }
 .log-section { width: 100%; max-width: 420px; }
 .log-title { font-size: 10px; color: #2e2a10; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 5px; }
 .log-list { display: flex; flex-direction: column; gap: 3px; max-height: 90px; overflow-y: auto; }
 .log-entry {
-  display: flex; justify-content: space-between;
-  padding: 5px 10px; background: #141210; border-radius: 5px;
-  border: 0.5px solid #242018; font-size: 11px; color: #4a4430;
-  animation: fi 0.3s ease;
+  display: flex; justify-content: space-between; padding: 5px 10px;
+  background: #141210; border-radius: 5px; border: 0.5px solid #242018;
+  font-size: 11px; color: #4a4430; animation: fi 0.3s ease;
 }
 .log-entry .ls { color: #9a8850; font-weight: 500; }
 .log-entry .lok { color: #508040; font-size: 10px; }
@@ -140,44 +125,41 @@ let totalSec = 3600, remSec = 3600;
 let running = false, timer = null, done = false;
 let beepOn = true, lastBeepMin = -1, audioCtx = null;
 
-// Reloj real — inmune al throttling del navegador
-let startTime = null;       // Date.now() cuando se pulsó Iniciar/Continuar
-let startRemaining = null;  // remSec en ese momento
+// Reloj real: guardamos el timestamp de inicio y los segundos que quedaban en ese momento
+let deadlineTs = null; // Date.now() + remSec*1000 cuando se pulsa Iniciar/Continuar
 
 function getAC() {
   if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   return audioCtx;
 }
-
 function playCasio() {
   if (!beepOn) return;
   try {
     const a = getAC(); a.resume();
-    const osc = a.createOscillator(), gain = a.createGain();
-    osc.connect(gain); gain.connect(a.destination);
+    const osc = a.createOscillator(), g = a.createGain();
+    osc.connect(g); g.connect(a.destination);
     osc.type = 'square'; osc.frequency.value = 2000;
     const t = a.currentTime;
-    gain.gain.setValueAtTime(0, t);
-    gain.gain.linearRampToValueAtTime(0.22, t + 0.003);
-    gain.gain.setValueAtTime(0.22, t + 0.06);
-    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(0.22, t + 0.003);
+    g.gain.setValueAtTime(0.22, t + 0.06);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
     osc.start(t); osc.stop(t + 0.2);
   } catch(e) {}
 }
-
 function playFinish() {
   if (!beepOn) return;
   try {
     const a = getAC(); a.resume();
-    [0, 0.25, 0.5].forEach(delay => {
-      const osc = a.createOscillator(), gain = a.createGain();
-      osc.connect(gain); gain.connect(a.destination);
+    [0, 0.25, 0.5].forEach(d => {
+      const osc = a.createOscillator(), g = a.createGain();
+      osc.connect(g); g.connect(a.destination);
       osc.type = 'square'; osc.frequency.value = 2000;
-      const t = a.currentTime + delay;
-      gain.gain.setValueAtTime(0, t);
-      gain.gain.linearRampToValueAtTime(0.22, t + 0.003);
-      gain.gain.setValueAtTime(0.22, t + 0.06);
-      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
+      const t = a.currentTime + d;
+      g.gain.setValueAtTime(0, t);
+      g.gain.linearRampToValueAtTime(0.22, t + 0.003);
+      g.gain.setValueAtTime(0.22, t + 0.06);
+      g.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
       osc.start(t); osc.stop(t + 0.2);
     });
   } catch(e) {}
@@ -186,97 +168,84 @@ function playFinish() {
 function draw(elapsed, total) {
   const S = PX, cx = S/2, cy = S/2, R = S*0.46;
   ctx.clearRect(0, 0, S, S);
-
-  ctx.beginPath(); ctx.arc(cx, cy, R+6, 0, Math.PI*2);
-  ctx.fillStyle = '#0e0d09'; ctx.fill();
-
-  ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI*2);
-  ctx.fillStyle = '#1c1a10'; ctx.fill();
-  ctx.strokeStyle = '#c8a030'; ctx.lineWidth = S*0.008; ctx.stroke();
-
-  ctx.beginPath(); ctx.arc(cx, cy, R*0.955, 0, Math.PI*2);
-  ctx.strokeStyle = '#252210'; ctx.lineWidth = S*0.004; ctx.stroke();
-
-  ctx.beginPath(); ctx.arc(cx, cy, R*0.945, 0, Math.PI*2);
-  ctx.fillStyle = '#111008'; ctx.fill();
+  ctx.beginPath(); ctx.arc(cx,cy,R+6,0,Math.PI*2); ctx.fillStyle='#0e0d09'; ctx.fill();
+  ctx.beginPath(); ctx.arc(cx,cy,R,0,Math.PI*2); ctx.fillStyle='#1c1a10'; ctx.fill();
+  ctx.strokeStyle='#c8a030'; ctx.lineWidth=S*0.008; ctx.stroke();
+  ctx.beginPath(); ctx.arc(cx,cy,R*0.955,0,Math.PI*2); ctx.strokeStyle='#252210'; ctx.lineWidth=S*0.004; ctx.stroke();
+  ctx.beginPath(); ctx.arc(cx,cy,R*0.945,0,Math.PI*2); ctx.fillStyle='#111008'; ctx.fill();
 
   if (elapsed > 0 && elapsed < total) {
     const ea = -Math.PI/2 + (elapsed/total)*Math.PI*2;
-    ctx.beginPath(); ctx.moveTo(cx, cy);
-    ctx.arc(cx, cy, R*0.94, -Math.PI/2, ea);
-    ctx.closePath();
-    ctx.fillStyle = 'rgba(200,55,20,0.17)'; ctx.fill();
+    ctx.beginPath(); ctx.moveTo(cx,cy);
+    ctx.arc(cx,cy,R*0.94,-Math.PI/2,ea); ctx.closePath();
+    ctx.fillStyle='rgba(200,55,20,0.17)'; ctx.fill();
   }
 
   for (let i = 0; i < 60; i++) {
     const angle = (i/60)*Math.PI*2 - Math.PI/2;
-    const is5 = i%5===0, is15 = i%15===0;
-    const outerR = R*0.935;
-    let innerR, lineW, color;
-    if (is15)      { innerR = outerR-R*0.115; lineW = S*0.012; color = '#e8c050'; }
-    else if (is5)  { innerR = outerR-R*0.08;  lineW = S*0.007; color = '#c09030'; }
-    else           { innerR = outerR-R*0.042; lineW = S*0.003; color = '#6a5c28'; }
+    const is5=i%5===0, is15=i%15===0, outerR=R*0.935;
+    let innerR,lineW,color;
+    if(is15){innerR=outerR-R*0.115;lineW=S*0.012;color='#e8c050';}
+    else if(is5){innerR=outerR-R*0.08;lineW=S*0.007;color='#c09030';}
+    else{innerR=outerR-R*0.042;lineW=S*0.003;color='#6a5c28';}
     ctx.beginPath();
     ctx.moveTo(cx+Math.cos(angle)*innerR, cy+Math.sin(angle)*innerR);
     ctx.lineTo(cx+Math.cos(angle)*outerR, cy+Math.sin(angle)*outerR);
-    ctx.strokeStyle = color; ctx.lineWidth = lineW; ctx.lineCap = 'round'; ctx.stroke();
+    ctx.strokeStyle=color; ctx.lineWidth=lineW; ctx.lineCap='round'; ctx.stroke();
   }
 
-  const fs = Math.round(R*0.13);
-  ctx.font = `500 ${fs}px DM Mono, Courier New, monospace`;
-  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  for (let i = 1; i <= 12; i++) {
-    const min = i*5, angle = (min/60)*Math.PI*2 - Math.PI/2;
-    ctx.fillStyle = '#b09040';
+  const fs=Math.round(R*0.13);
+  ctx.font=`500 ${fs}px DM Mono,Courier New,monospace`;
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  for(let i=1;i<=12;i++){
+    const min=i*5, angle=(min/60)*Math.PI*2-Math.PI/2;
+    ctx.fillStyle='#b09040';
     ctx.fillText(min, cx+Math.cos(angle)*R*0.76, cy+Math.sin(angle)*R*0.76);
   }
 
-  const frac = elapsed/total, na = frac*Math.PI*2 - Math.PI/2;
-  const nLen = R*0.80, nTail = R*0.15, nW = S*0.014;
+  const frac=elapsed/total, na=frac*Math.PI*2-Math.PI/2;
+  const nLen=R*0.80, nTail=R*0.15, nW=S*0.014;
   ctx.save();
-  ctx.shadowColor = 'rgba(0,0,0,0.9)'; ctx.shadowBlur = S*0.025;
-  ctx.shadowOffsetX = S*0.008; ctx.shadowOffsetY = S*0.008;
+  ctx.shadowColor='rgba(0,0,0,0.9)'; ctx.shadowBlur=S*0.025;
+  ctx.shadowOffsetX=S*0.008; ctx.shadowOffsetY=S*0.008;
   ctx.beginPath();
   ctx.moveTo(cx-Math.cos(na)*nTail, cy-Math.sin(na)*nTail);
-  ctx.lineTo(cx+Math.cos(na)*nLen, cy+Math.sin(na)*nLen);
-  ctx.strokeStyle = '#d03818'; ctx.lineWidth = nW; ctx.lineCap = 'round'; ctx.stroke();
+  ctx.lineTo(cx+Math.cos(na)*nLen,  cy+Math.sin(na)*nLen);
+  ctx.strokeStyle='#d03818'; ctx.lineWidth=nW; ctx.lineCap='round'; ctx.stroke();
   ctx.restore();
   ctx.beginPath();
   ctx.moveTo(cx-Math.cos(na)*nTail, cy-Math.sin(na)*nTail);
-  ctx.lineTo(cx+Math.cos(na)*nLen, cy+Math.sin(na)*nLen);
-  ctx.strokeStyle = '#d83818'; ctx.lineWidth = nW*0.7; ctx.lineCap = 'round'; ctx.stroke();
+  ctx.lineTo(cx+Math.cos(na)*nLen,  cy+Math.sin(na)*nLen);
+  ctx.strokeStyle='#d83818'; ctx.lineWidth=nW*0.7; ctx.lineCap='round'; ctx.stroke();
   ctx.beginPath();
-  ctx.arc(cx+Math.cos(na)*(nLen-R*0.025), cy+Math.sin(na)*(nLen-R*0.025), R*0.025, 0, Math.PI*2);
-  ctx.fillStyle = '#f04828'; ctx.fill();
-  ctx.beginPath(); ctx.arc(cx-Math.cos(na)*nTail, cy-Math.sin(na)*nTail, R*0.02, 0, Math.PI*2);
-  ctx.fillStyle = '#d03818'; ctx.fill();
-  ctx.beginPath(); ctx.arc(cx, cy, R*0.042, 0, Math.PI*2);
-  ctx.fillStyle = '#c8a030'; ctx.fill();
-  ctx.beginPath(); ctx.arc(cx, cy, R*0.022, 0, Math.PI*2);
-  ctx.fillStyle = '#d03818'; ctx.fill();
+  ctx.arc(cx+Math.cos(na)*(nLen-R*0.025), cy+Math.sin(na)*(nLen-R*0.025), R*0.025,0,Math.PI*2);
+  ctx.fillStyle='#f04828'; ctx.fill();
+  ctx.beginPath(); ctx.arc(cx-Math.cos(na)*nTail, cy-Math.sin(na)*nTail, R*0.02,0,Math.PI*2);
+  ctx.fillStyle='#d03818'; ctx.fill();
+  ctx.beginPath(); ctx.arc(cx,cy,R*0.042,0,Math.PI*2); ctx.fillStyle='#c8a030'; ctx.fill();
+  ctx.beginPath(); ctx.arc(cx,cy,R*0.022,0,Math.PI*2); ctx.fillStyle='#d03818'; ctx.fill();
 
-  const gg = ctx.createRadialGradient(cx-R*0.22, cy-R*0.28, R*0.04, cx, cy, R*0.94);
-  gg.addColorStop(0, 'rgba(255,255,255,0.06)');
-  gg.addColorStop(0.5, 'rgba(255,255,255,0.01)');
-  gg.addColorStop(1, 'rgba(0,0,0,0)');
-  ctx.beginPath(); ctx.arc(cx, cy, R*0.94, 0, Math.PI*2);
-  ctx.fillStyle = gg; ctx.fill();
+  const gg=ctx.createRadialGradient(cx-R*0.22,cy-R*0.28,R*0.04,cx,cy,R*0.94);
+  gg.addColorStop(0,'rgba(255,255,255,0.06)');
+  gg.addColorStop(0.5,'rgba(255,255,255,0.01)');
+  gg.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.beginPath(); ctx.arc(cx,cy,R*0.94,0,Math.PI*2); ctx.fillStyle=gg; ctx.fill();
 }
 
 function refresh() { draw(totalSec - remSec, totalSec); }
 
 const ICONS = {
-  idle:    { path: '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>', color: '#4a4220', label: 'en espera' },
-  running: { path: '<circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8" fill="#60b040" stroke="none"/>', color: '#60b040', label: 'en curso' },
-  paused:  { path: '<circle cx="12" cy="12" r="10"/><line x1="10" y1="8" x2="10" y2="16"/><line x1="14" y1="8" x2="14" y2="16"/>', color: '#b09030', label: 'pausado' },
-  done:    { path: '<circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/>', color: '#c04030', label: 'completado' },
+  idle:    {path:'<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',color:'#4a4220',label:'en espera'},
+  running: {path:'<circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8" fill="#60b040" stroke="none"/>',color:'#60b040',label:'en curso'},
+  paused:  {path:'<circle cx="12" cy="12" r="10"/><line x1="10" y1="8" x2="10" y2="16"/><line x1="14" y1="8" x2="14" y2="16"/>',color:'#b09030',label:'pausado'},
+  done:    {path:'<circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/>',color:'#c04030',label:'completado'},
 };
 function setIcon(s) {
-  const ic = ICONS[s];
-  document.getElementById('iconSvg').innerHTML = ic.path;
-  document.getElementById('iconSvg').setAttribute('stroke', ic.color);
-  document.getElementById('stateLabel').textContent = ic.label;
-  document.getElementById('stateLabel').style.color = ic.color;
+  const ic=ICONS[s];
+  document.getElementById('iconSvg').innerHTML=ic.path;
+  document.getElementById('iconSvg').setAttribute('stroke',ic.color);
+  document.getElementById('stateLabel').textContent=ic.label;
+  document.getElementById('stateLabel').style.color=ic.color;
 }
 
 document.querySelectorAll('.dur-btn').forEach(b => {
@@ -284,9 +253,8 @@ document.querySelectorAll('.dur-btn').forEach(b => {
     if (running) return;
     document.querySelectorAll('.dur-btn').forEach(x => x.classList.remove('active'));
     b.classList.add('active');
-    totalSec = parseInt(b.dataset.m)*60; remSec = totalSec; done = false; lastBeepMin = -1;
-    setStatus('Escribe el tema y pulsa Iniciar', '');
-    setIcon('idle'); refresh();
+    totalSec=parseInt(b.dataset.m)*60; remSec=totalSec; done=false; lastBeepMin=-1; deadlineTs=null;
+    setStatus('Escribe el tema y pulsa Iniciar',''); setIcon('idle'); refresh();
   });
 });
 
@@ -295,82 +263,74 @@ document.getElementById('bStart').addEventListener('click', () => {
   const bs = document.getElementById('bStart');
   if (!running) {
     running = true;
-    startTime = Date.now();
-    startRemaining = remSec;
-    bs.textContent = '⏸ Pausar'; bs.classList.add('running');
-    setStatus('Estudiando: ' + (document.getElementById('subj').value.trim() || 'Sin tema'), 'on');
+    // deadline = ahora + segundos que quedan
+    deadlineTs = Date.now() + remSec * 1000;
+    bs.textContent='⏸ Pausar'; bs.classList.add('running');
+    setStatus('Estudiando: '+(document.getElementById('subj').value.trim()||'Sin tema'),'on');
     setIcon('running');
     try { getAC().resume(); } catch(e) {}
-    // tick cada 500ms para mayor precisión, pero calcula con reloj real
-    timer = setInterval(tick, 500);
+    timer = setInterval(tick, 1000);
   } else {
-    clearInterval(timer); running = false;
-    bs.textContent = '▶ Continuar'; bs.classList.remove('running');
-    setStatus('En pausa', ''); setIcon('paused');
+    clearInterval(timer); running=false;
+    bs.textContent='▶ Continuar'; bs.classList.remove('running');
+    setStatus('En pausa',''); setIcon('paused');
   }
 });
 
 document.getElementById('bReset').addEventListener('click', resetFn);
 
 document.getElementById('bBeep').addEventListener('click', () => {
-  beepOn = !beepOn;
-  const bb = document.getElementById('bBeep');
-  bb.textContent = beepOn ? '🔔 Beep' : '🔕 Beep';
-  bb.classList.toggle('muted', !beepOn);
-  if (beepOn) playCasio();
+  beepOn=!beepOn;
+  const bb=document.getElementById('bBeep');
+  bb.textContent=beepOn?'🔔 Beep':'🔕 Beep';
+  bb.classList.toggle('muted',!beepOn);
+  if(beepOn) playCasio();
 });
 
 function tick() {
-  // Tiempo transcurrido real desde que se pulsó Iniciar/Continuar
-  const realElapsed = Math.floor((Date.now() - startTime) / 1000);
-  const newRem = Math.max(0, startRemaining - realElapsed);
+  // Segundos restantes según el reloj real
+  const newRem = Math.max(0, Math.round((deadlineTs - Date.now()) / 1000));
+  remSec = newRem;
+  refresh();
 
-  // Beep cada 5 minutos
-  const elMin = Math.floor((totalSec - newRem) / 60);
-  if (elMin > 0 && elMin % 5 === 0 && elMin !== lastBeepMin && newRem > 0) {
+  const elMin = Math.floor((totalSec - remSec) / 60);
+  if (elMin > 0 && elMin % 5 === 0 && elMin !== lastBeepMin && remSec > 0) {
     lastBeepMin = elMin;
     playCasio();
   }
 
-  remSec = newRem;
-  refresh();
-
   if (remSec <= 0) {
-    remSec = 0; clearInterval(timer); running = false; done = true;
-    document.getElementById('bStart').textContent = '▶ Nueva sesión';
+    remSec=0; clearInterval(timer); running=false; done=true;
+    document.getElementById('bStart').textContent='▶ Nueva sesión';
     document.getElementById('bStart').classList.remove('running');
-    setStatus('¡Sesión completada!', 'alert');
-    setIcon('done');
-    logSes(true);
-    playFinish();
-    refresh();
+    setStatus('¡Sesión completada!','alert'); setIcon('done');
+    logSes(true); playFinish(); refresh();
   }
 }
 
 function resetFn() {
-  if (running) { clearInterval(timer); running = false; }
-  const el = totalSec - remSec;
-  if (el > 5 && !done) logSes(false);
-  remSec = totalSec; done = false; lastBeepMin = -1;
-  startTime = null; startRemaining = null;
-  document.getElementById('bStart').textContent = '▶ Iniciar';
+  if (running) { clearInterval(timer); running=false; }
+  const el=totalSec-remSec;
+  if (el>5 && !done) logSes(false);
+  remSec=totalSec; done=false; lastBeepMin=-1; deadlineTs=null;
+  document.getElementById('bStart').textContent='▶ Iniciar';
   document.getElementById('bStart').classList.remove('running');
-  setStatus('Escribe el tema y pulsa Iniciar', ''); setIcon('idle'); refresh();
+  setStatus('Escribe el tema y pulsa Iniciar',''); setIcon('idle'); refresh();
 }
 
-function setStatus(txt, cls) {
-  const el = document.getElementById('st');
-  el.textContent = txt; el.className = 'status' + (cls ? ' '+cls : '');
+function setStatus(txt,cls) {
+  const el=document.getElementById('st');
+  el.textContent=txt; el.className='status'+(cls?' '+cls:'');
 }
 
 function logSes(ok) {
-  const subj = document.getElementById('subj').value.trim() || 'Sin tema';
-  const el = totalSec - remSec;
-  const t = Math.floor(el/60) + 'min ' + String(el%60).padStart(2,'0') + 's';
-  const e = document.createElement('div'); e.className = 'log-entry';
-  e.innerHTML = `<span class="ls">${subj}</span><span>${t}</span><span class="${ok?'lok':'lpa'}">${ok?'✓ completo':'⏸ parcial'}</span>`;
+  const subj=document.getElementById('subj').value.trim()||'Sin tema';
+  const el=totalSec-remSec;
+  const t=Math.floor(el/60)+'min '+String(el%60).padStart(2,'0')+'s';
+  const e=document.createElement('div'); e.className='log-entry';
+  e.innerHTML=`<span class="ls">${subj}</span><span>${t}</span><span class="${ok?'lok':'lpa'}">${ok?'✓ completo':'⏸ parcial'}</span>`;
   document.getElementById('logList').prepend(e);
-  document.getElementById('logSec').style.display = 'block';
+  document.getElementById('logSec').style.display='block';
 }
 
 resize(); setIcon('idle');
